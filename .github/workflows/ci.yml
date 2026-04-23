@@ -1,4 +1,4 @@
-name: CI
+name: CI-CD
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
       - master
 
 jobs:
-  test-build-push:
+  test-build-push-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -41,3 +41,18 @@ jobs:
 
       - name: Push frontend
         run: docker push ${{ secrets.DOCKER_USERNAME }}/tp_final-frontend:latest
+
+      - name: Déployer sur la VM via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            cd ~/tp_final
+            git pull
+            sudo kubectl apply -f k8s/
+            sudo kubectl rollout restart deployment backend-deployment
+            sudo kubectl rollout restart deployment frontend-deployment
+            sudo kubectl rollout restart deployment mysql-deployment
+            sudo kubectl get pods
