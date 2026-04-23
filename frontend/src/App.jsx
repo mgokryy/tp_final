@@ -8,8 +8,7 @@ function App() {
     try {
       setError("");
 
-      const apiUrl = "http://127.0.0.1:49688";
-      const res = await fetch(`${apiUrl}/api/users`);
+      const res = await fetch("http://20.39.233.140:30080/api/users");
       const data = await res.json();
 
       if (!res.ok) {
