@@ -8,7 +8,7 @@ function App() {
     try {
       setError("");
 
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5001";
+      const apiUrl = "http://127.0.0.1:49688";
       const res = await fetch(`${apiUrl}/api/users`);
       const data = await res.json();
 

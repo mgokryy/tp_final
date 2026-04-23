@@ -17,3 +17,6 @@ spec:
           image: mgokry/tp_final-frontend:latest
           ports:
             - containerPort: 5173
+          env:
+            - name: VITE_API_URL
+              value: "http://backend-service:5000"
