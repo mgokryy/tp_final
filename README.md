@@ -1,117 +1,160 @@
-# TP Déploiement automatisé d’une application web
+# Projet Déploiement automatisé d’une application web
+
+---
 
 ## Description du projet
 
-Ce projet a pour objectif de mettre en place une chaîne complète de déploiement d’une application web en utilisant des outils DevOps modernes.
+Ce projet a pour objectif de mettre en place une chaîne complète de déploiement pour une application web full stack.
 
-L’application développée est une application **full stack** composée de :
-- un **frontend React**
-- un **backend Node.js (Express)**
-- une **base de données MySQL**
+L’application est composée de :
+
+- Frontend : React
+- Backend : Node.js (Express)
+- Base de données : MySQL
 
 Fonctionnalités principales :
-- un endpoint `/health` pour vérifier que le backend fonctionne
-- une API `/api/users` permettant de récupérer des utilisateurs
-- un frontend permettant d’afficher les utilisateurs via un bouton
 
-L’application a été :
-- conteneurisée avec Docker
-- orchestrée avec Docker Compose
-- déployée sur Kubernetes
-- hébergée sur une VM Azure
+- Endpoint `/health` pour vérifier que le backend fonctionne
+- Endpoint `/api/users` pour récupérer des utilisateurs depuis la base de données
+- Communication entre frontend, backend et base de données
 
 ---
 
-## Explication du pipeline CI/CD
+## Pipeline CI/CD (GitHub Actions)
 
-Une pipeline CI/CD a été mise en place avec **GitHub Actions** afin d’automatiser les différentes étapes du projet.
+La pipeline est déclenchée automatiquement à chaque `git push`.
 
-### Déroulement de la pipeline
+### Étapes :
 
-À chaque `git push` sur la branche principale :
-
-1. **Installation des dépendances**
-   - Installation des dépendances Node.js du backend
-
-2. **Exécution des tests**
-   - Lancement des tests avec `npm test`
-   - Si les tests échouent → la pipeline s’arrête
-
-3. **Build des images Docker**
-   - Construction de l’image backend
-   - Construction de l’image frontend
-
-4. **Push des images sur Docker Hub**
-   - Envoi des images vers Docker Hub
-
-5. **Déploiement automatique sur la VM (SSH)**
-   - Connexion à la VM Azure via SSH
-   - `git pull` pour récupérer le code à jour
-   - `kubectl apply -f k8s/` pour mettre à jour Kubernetes
-   - Redémarrage des pods (`rollout restart`)
-
-### Gestion des secrets
-
-Les informations sensibles sont stockées dans les **GitHub Secrets** :
-- identifiants Docker Hub
-- clé SSH de la VM
-- IP de la VM
-- utilisateur SSH
-
-Cela permet de sécuriser les accès sans exposer de données sensibles dans le code.
-
----
-
-## Étapes de déploiement
-
-### 1. Déploiement en local
-
-Lancement de l’application avec Docker Compose :
-
-```bash
-docker compose up --build
+```text
+git push
+   ↓
+1. Installation des dépendances
+   ↓
+2. Lancement des tests
+   ↓
+3. Build des images Docker
+   ↓
+4. Push sur Docker Hub
+   ↓
+5. Connexion SSH à la VM Azure
+   ↓
+6. Déploiement Kubernetes (kubectl apply)
 ````
 
-Vérifications :
+### Secrets utilisés :
 
-* frontend accessible
-* backend accessible via `/health`
-* communication avec MySQL
+Dans GitHub :
 
----
+* `DOCKER_USERNAME`
+* `DOCKER_PASSWORD`
+* `SSH_HOST`
+* `SSH_USER`
+* `SSH_KEY`
 
-### 2. Conteneurisation
-
-Création de Dockerfile pour :
-
-* le backend
-* le frontend
-
-Build et exécution des conteneurs Docker.
+Aucun secret n’est stocké dans le code.
 
 ---
 
-### 3. Orchestration avec Docker Compose
+## Docker
 
-Mise en place des services :
+### Build des images en local
 
-* backend
+```bash
+docker build -t tp_final-backend ./backend
+docker build -t tp_final-frontend ./frontend
+```
+
+### Lancer avec Docker Compose
+
+```bash
+docker-compose up --build
+```
+
+Permet de lancer :
+
 * frontend
-* MySQL
-* phpMyAdmin
-
-Validation de la communication entre les services.
+* backend
+* mysql
+* phpmyadmin
 
 ---
 
-### 4. Déploiement Kubernetes (local)
+## Kubernetes (local avec Minikube)
 
-* Création des fichiers YAML :
+### Démarrer Minikube
 
-  * Deployments
-  * Services (NodePort)
+```bash
+minikube start
+```
 
-* Déploiement avec Minikube :
+### Déployer l'application
+
+```bash
+kubectl apply -f k8s/
+```
+
+### Vérifier
+
+```bash
+kubectl get pods
+kubectl get svc
+```
+
+---
+
+## Déploiement sur VM Azure
+
+### 1. Connexion à la VM
+
+```bash
+ssh -i C:\Users\lolao\Downloads\tp-mgokry_key.pem azureuser@20.39.233.140
+```
+
+---
+
+### 2. Installer Docker
+
+```bash
+sudo apt update
+sudo apt install docker.io -y
+sudo systemctl start docker
+sudo systemctl enable docker
+```
+
+---
+
+### 3. Installer K3s (Kubernetes léger)
+
+```bash
+curl -sfL https://get.k3s.io | sh -
+```
+
+Configurer kubectl :
+
+```bash
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+sudo chmod 644 /etc/rancher/k3s/k3s.yaml
+```
+
+Vérifier :
+
+```bash
+kubectl get nodes
+```
+
+---
+
+### 4. Récupérer le projet
+
+```bash
+git clone https://github.com/mgokryy/tp_final.git
+cd tp_final
+```
+
+---
+
+### 5. Déployer sur Kubernetes
 
 ```bash
 kubectl apply -f k8s/
@@ -119,166 +162,110 @@ kubectl apply -f k8s/
 
 ---
 
-### 5. Déploiement sur une VM Azure
-
-* Création d’une VM Ubuntu
-* Connexion en SSH
-* Installation de :
-
-  * Docker
-  * Kubernetes (K3s)
-
-Déploiement de l’application :
+### 6. Vérifier les pods
 
 ```bash
-kubectl apply -f k8s/
-```
-
-Application accessible via :
-
-```
-http://IP_VM:PORT
+kubectl get pods
 ```
 
 ---
 
-### 6. Déploiement automatique
+### 7. Vérifier les services
 
-Mise en place d’un déploiement automatique via GitHub Actions :
+```bash
+kubectl get svc
+```
 
-À chaque push :
+Exemple :
 
-* build des images Docker
-* push sur Docker Hub
-* connexion SSH à la VM
-* mise à jour Kubernetes
+```text
+frontend-service   NodePort   5173:31260
+backend-service    NodePort   5000:30383
+```
+
+---
+
+### 8. Accéder à l'application
+
+Dans le navigateur :
+
+Frontend :
+
+```
+http://20.39.233.140:31260
+```
+
+Backend :
+
+```
+http://20.39.233.140:30383/api/users
+```
+
+---
+
+## Configuration réseau Azure
+
+Dans Azure :
+
+* Aller dans **Network Security Group**
+* Ajouter des règles **Inbound**
+
+Ports à ouvrir :
+
+* `30000-32767` (NodePort Kubernetes)
+
+👉 Sinon l’application n’est pas accessible depuis l’extérieur.
+
+---
+
+## Variables d’environnement
+
+Exemples :
+
+Backend :
+
+```env
+DB_HOST=mysql-service
+DB_USER=root
+DB_PASSWORD=example
+DB_NAME=users_db
+```
+
+Frontend :
+
+```env
+VITE_API_URL=http://20.39.233.140:30383
+```
 
 ---
 
 ## Difficultés rencontrées
 
-### Problèmes avec Docker
+La principale difficulté a été liée à Docker Desktop.
 
-Une difficulté importante a été liée à Docker :
+Au début, Docker ne se lançait pas correctement, ce qui empêchait :
 
-* Docker Desktop ne se lançait pas correctement
-* problèmes de configuration avec WSL2 et la virtualisation
-* lenteurs importantes lors de l’exécution des commandes Docker
+* le build des images
+* le démarrage des conteneurs
+* les tests en local
 
-Solution :
+Pour résoudre ce problème :
 
-* activation de la virtualisation dans le BIOS
-* configuration de WSL2
-* redémarrages et ajustements système
+* redémarrage de Docker Desktop
+* vérification de la configuration WSL
+* relance complète des conteneurs
 
----
-
-### Ports déjà utilisés
-
-Lors du lancement avec Docker Compose :
-
-* certains ports étaient déjà utilisés
-* les conteneurs ne pouvaient pas démarrer
-
-Solution :
-
-* arrêter les processus existants
-* libérer les ports
-* relancer les services
+Une fois Docker fonctionnel, le reste du projet a pu être mis en place progressivement.
 
 ---
 
-### Connexion MySQL
+## Résultat final
 
-Le backend ne parvenait pas à se connecter à MySQL :
-
-* erreur `ECONNREFUSED`
-* base de données pas encore prête
-
-Solution :
-
-* attendre le démarrage complet de MySQL
-* vérifier les variables d’environnement
-* corriger l’host (nom du service Docker/Kubernetes)
+✔ Application fonctionnelle en local
+✔ Fonctionne avec Docker Compose
+✔ Déployée sur Kubernetes
+✔ Déployée sur une VM Azure
+✔ Pipeline CI/CD automatique
+✔ Mise à jour automatique après chaque push
 
 ---
-
-### Problème de mise à jour des images Kubernetes
-
-Le frontend ne se mettait pas à jour :
-
-* Kubernetes utilisait une ancienne image Docker (`latest` en cache)
-
-Solution :
-
-* suppression des pods
-* redémarrage des deployments
-* ajout de `imagePullPolicy: Always`
-
----
-
-### Problème d’URL frontend
-
-Le frontend appelait une URL locale :
-
-```
-http://127.0.0.1
-```
-
-Ce qui ne fonctionnait pas depuis la VM.
-
-Solution :
-
-* mise à jour de l’URL vers l’IP publique de la VM
-* rebuild et redéploiement du frontend
-
----
-
-### Problème de réseau Azure
-
-L’application n’était pas accessible depuis Internet :
-
-* les ports Kubernetes n’étaient pas ouverts
-
-Solution :
-
-* ajout de règles entrantes Azure
-* ouverture de la plage :
-
-```
-30000-32767
-```
-
----
-
-### Perte des données MySQL
-
-Les données disparaissaient après redéploiement :
-
-* absence de volume persistant
-
-Solution :
-
-* recréer la base manuellement
-* identifier une amélioration possible :
-
-  * ajout de PersistentVolume et PersistentVolumeClaim
-
----
-
-## Conclusion
-
-Ce projet a permis de mettre en place une chaîne complète de déploiement DevOps :
-
-* conteneurisation avec Docker
-* orchestration avec Docker Compose
-* déploiement avec Kubernetes
-* automatisation avec GitHub Actions
-* déploiement sur une VM cloud
-
-Il met en évidence l’importance de :
-
-* l’automatisation
-* la gestion des environnements
-* la maîtrise des outils DevOps modernes
-
