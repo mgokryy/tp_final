@@ -214,7 +214,7 @@ Ports à ouvrir :
 
 * `30000-32767` (NodePort Kubernetes)
 
-👉 Sinon l’application n’est pas accessible depuis l’extérieur.
+Sinon l’application n’est pas accessible depuis l’extérieur.
 
 ---
 
