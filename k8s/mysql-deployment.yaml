@@ -22,3 +22,10 @@ spec:
               value: "root"
             - name: MYSQL_DATABASE
               value: "tp_final"
+          volumeMounts:
+            - name: mysql-storage
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: mysql-pvc
